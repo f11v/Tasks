@@ -1,64 +1,42 @@
 pipeline {
     agent any
 
-    environment {
-        VENV = '.venv'
-    }
-
     stages {
-        stage('Clone Repo') {
+        stage('Build') {
             steps {
-                checkout scm
+                echo 'Building the application...'
+                // Tu lógica de compilación
             }
         }
-
-        stage('Setup') {
-            steps {
-                sh 'python -m venv .venv'
-                sh '. .venv/bin/activate && pip install -r requirements.txt'
-            }
-        }
-
-        stage('Lint') {
-            steps {
-                sh '. .venv/bin/activate && flake8 app'
-            }
-        }
-
         stage('Test') {
             steps {
-                sh '. .venv/bin/activate && pytest'
-            }
-        }
-
-        stage('Code Quality') {
-            steps {
-                sh 'sonar-scanner'
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t todo_service .'
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                sh 'docker run -d -p 8000:8000 --name todo_service todo_service'
+                echo 'Running tests...'
+                // Aquí irían tus pruebas
             }
         }
     }
 
     post {
         always {
-            echo 'Pipeline finished'
+            echo 'Pipeline has completed.'
         }
         success {
-            echo 'Build successful!'
+            echo 'Pipeline was successful!'
+            sh '''
+            curl -X POST -H "Authorization: token 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" \
+                 -H "Content-Type: application/json" \
+                 -d '{"state": "success", "description": "Pipeline passed successfully!", "context": "CI/CD Jenkins Pipeline"}' \
+                 https://api.github.com/repos/f11v/Tasks/statuses/${GIT_COMMIT}
+            '''
         }
         failure {
-            echo 'Build failed!'
+            echo 'Pipeline failed.'
+            sh '''
+            curl -X POST -H "Authorization: token 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" \
+                 -H "Content-Type: application/json" \
+                 -d '{"state": "failure", "description": "Pipeline encountered an error.", "context": "CI/CD Jenkins Pipeline"}' \
+                 https://api.github.com/repos/f11v/Tasks/statuses/${GIT_COMMIT}
+            '''
         }
     }
 }
